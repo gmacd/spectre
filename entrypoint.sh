@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+
+# Populate known_hosts so SSH host key verification doesn't fail
+ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null || true
+
 SSH_KEY="${SSH_KEY_PATH:-/root/.ssh/id_pub}"
 
 # Start ssh-agent and expose its environment to child processes
