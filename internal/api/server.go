@@ -8,6 +8,23 @@ import (
 	"time"
 )
 
+// conversationIDKey is the context key for the conversation id extracted
+// from incoming requests.
+type conversationIDKey struct{}
+
+// setConversationID returns a copy of ctx with conversationID stored.
+func setConversationID(ctx context.Context, conversationID string) context.Context {
+	return context.WithValue(ctx, conversationIDKey{}, conversationID)
+}
+
+// getConversationID retrieves the conversation id from ctx, if present.
+func getConversationID(ctx context.Context) string {
+	if v, ok := ctx.Value(conversationIDKey{}).(string); ok {
+		return v
+	}
+	return ""
+}
+
 // Agent is the dependency handlers call into to produce a reply.
 type Agent interface {
 	HandleMessage(ctx context.Context, conversationID, text string) (string, error)
@@ -65,12 +82,16 @@ func (s *Server) loggingMiddleware(next http.Handler) http.Handler {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
-		s.logger.Info("request",
+		fields := []any{
 			"method", r.Method,
 			"path", r.URL.Path,
 			"status", rec.status,
 			"duration", time.Since(start),
-		)
+		}
+		if cid := getConversationID(r.Context()); cid != "" {
+			fields = append(fields, "conversation_id", cid)
+		}
+		s.logger.Info("request", fields...)
 	})
 }
 

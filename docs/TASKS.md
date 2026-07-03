@@ -16,3 +16,11 @@ See `docs/ARCHITECTURE.md` for the design these steps implement.
 - [ ] Matrix integration (`internal/matrix`, needs a Matrix SDK dependency — requires separate approval)
 - [ ] Auth on the REST API (needed if `listen_addr` ever binds non-loopback)
 - [ ] Streaming responses
+
+## Follow-up improvements
+
+- [x] Log `conversation_id` in HTTP middleware (now adds it from request context)
+- [x] Validate `Content-Type: application/json` on `POST /v1/messages`
+- [x] Deduplicate `SendRequest`/`SendResponse`/`ErrorResponse` types in `internal/api/types.go`
+- [x] Make `send` client timeout configurable via `-timeout` flag
+- [x] Add "trace" log level option to `parseLogLevel`

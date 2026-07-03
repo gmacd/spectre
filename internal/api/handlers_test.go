@@ -80,7 +80,7 @@ func TestHandleMessages_HappyPath(t *testing.T) {
 	agent := &fakeAgent{reply: "hi there"}
 	s := testServer(agent, &fakePinger{})
 
-	body, _ := json.Marshal(sendRequest{ConversationID: "cli:default", Message: "hello"})
+	body, _ := json.Marshal(SendRequest{ConversationID: "cli:default", Message: "hello"})
 	req := httptest.NewRequest("POST", "/v1/messages", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
 
@@ -89,7 +89,7 @@ func TestHandleMessages_HappyPath(t *testing.T) {
 	if rec.Code != 200 {
 		t.Fatalf("status = %d, want 200, body: %s", rec.Code, rec.Body.String())
 	}
-	var resp sendResponse
+	var resp SendResponse
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("unmarshal response: %v", err)
 	}
@@ -104,7 +104,7 @@ func TestHandleMessages_HappyPath(t *testing.T) {
 func TestHandleMessages_MissingFields(t *testing.T) {
 	s := testServer(&fakeAgent{}, &fakePinger{})
 
-	body, _ := json.Marshal(sendRequest{ConversationID: "", Message: ""})
+	body, _ := json.Marshal(SendRequest{ConversationID: "", Message: ""})
 	req := httptest.NewRequest("POST", "/v1/messages", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
 
@@ -119,6 +119,22 @@ func TestHandleMessages_InvalidJSON(t *testing.T) {
 	s := testServer(&fakeAgent{}, &fakePinger{})
 
 	req := httptest.NewRequest("POST", "/v1/messages", bytes.NewReader([]byte("not json")))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	s.httpServer.Handler.ServeHTTP(rec, req)
+
+	if rec.Code != 400 {
+		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+}
+
+func TestHandleMessages_WrongContentType(t *testing.T) {
+	s := testServer(&fakeAgent{}, &fakePinger{})
+
+	body, _ := json.Marshal(SendRequest{ConversationID: "cli:default", Message: "hello"})
+	req := httptest.NewRequest("POST", "/v1/messages", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "text/plain")
 	rec := httptest.NewRecorder()
 
 	s.httpServer.Handler.ServeHTTP(rec, req)
@@ -132,7 +148,7 @@ func TestHandleMessages_AgentError(t *testing.T) {
 	agent := &fakeAgent{err: errors.New("llm unreachable")}
 	s := testServer(agent, &fakePinger{})
 
-	body, _ := json.Marshal(sendRequest{ConversationID: "cli:default", Message: "hello"})
+	body, _ := json.Marshal(SendRequest{ConversationID: "cli:default", Message: "hello"})
 	req := httptest.NewRequest("POST", "/v1/messages", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
 
@@ -141,7 +157,7 @@ func TestHandleMessages_AgentError(t *testing.T) {
 	if rec.Code != 500 {
 		t.Fatalf("status = %d, want 500", rec.Code)
 	}
-	var resp errorResponse
+	var resp ErrorResponse
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("unmarshal response: %v", err)
 	}

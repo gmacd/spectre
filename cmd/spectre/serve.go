@@ -73,6 +73,8 @@ func runServe(args []string) error {
 
 func parseLogLevel(level string) slog.Level {
 	switch level {
+	case "trace":
+		return slog.LevelDebug - 4 // slog has no Trace level; use -4 below Debug
 	case "debug":
 		return slog.LevelDebug
 	case "warn":

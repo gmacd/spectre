@@ -5,20 +5,6 @@ import (
 	"net/http"
 )
 
-type sendRequest struct {
-	ConversationID string `json:"conversation_id"`
-	Message        string `json:"message"`
-}
-
-type sendResponse struct {
-	ConversationID string `json:"conversation_id"`
-	Reply          string `json:"reply"`
-}
-
-type errorResponse struct {
-	Error string `json:"error"`
-}
-
 type healthResponse struct {
 	Status        string `json:"status"`
 	DB            string `json:"db"`
@@ -32,7 +18,13 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 }
 
 func writeError(w http.ResponseWriter, status int, msg string) {
-	writeJSON(w, status, errorResponse{Error: msg})
+	writeJSON(w, status, ErrorResponse{Error: msg})
+}
+
+// isJSON reports whether contentType indicates JSON content.
+func isJSON(contentType string) bool {
+	return contentType == "application/json" ||
+		contentType == "application/json; charset=utf-8"
 }
 
 // handleHealth is intentionally cheap: it pings the DB but does not
@@ -51,7 +43,11 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleMessages(w http.ResponseWriter, r *http.Request) {
-	var req sendRequest
+	if ct := r.Header.Get("Content-Type"); ct != "" && !isJSON(ct) {
+		writeError(w, http.StatusBadRequest, "Content-Type must be application/json")
+		return
+	}
+	var req SendRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body: "+err.Error())
 		return
@@ -61,12 +57,13 @@ func (s *Server) handleMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reply, err := s.agent.HandleMessage(r.Context(), req.ConversationID, req.Message)
+	ctx := setConversationID(r.Context(), req.ConversationID)
+	reply, err := s.agent.HandleMessage(ctx, req.ConversationID, req.Message)
 	if err != nil {
 		s.logger.Error("handle message failed", "conversation_id", req.ConversationID, "error", err)
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	writeJSON(w, http.StatusOK, sendResponse{ConversationID: req.ConversationID, Reply: reply})
+	writeJSON(w, http.StatusOK, SendResponse{ConversationID: req.ConversationID, Reply: reply})
 }
