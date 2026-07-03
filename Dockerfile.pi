@@ -6,4 +6,9 @@ RUN apt-get update \
 RUN npm install -g --ignore-scripts @earendil-works/pi-coding-agent
 
 WORKDIR /workspace
+
+# GIT_SSH_COMMAND lets git use the specified key for SSH-based operations
+# Default mount path is /root/.ssh/id_ed25519 — override with -e GIT_SSH_COMMAND at runtime
+ENV GIT_SSH_COMMAND="ssh -i /root/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new"
+
 ENTRYPOINT ["pi"]
