@@ -9,7 +9,7 @@ Build:
 Run:
 ```bash
   docker run --rm -it \
-    -v ~/.ssh/id_ed25519:/root/.ssh/id_ed25519:ro \
+    -v ~/.ssh/id_ed25519_github_nopw:/root/.ssh/id_ed25519_github_nopw:ro \
     -v "$(pwd):/workspace" \
     -v "$HOME/.pi/agent:/root/.pi/agent" \
     pi-sandbox
